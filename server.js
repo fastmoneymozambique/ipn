@@ -14,7 +14,7 @@ const DB_NAME = 'sourcefluent';
 const COLLECTION = 'pagamentos';
 const PORT = process.env.PORT || 3000;
 
-// Nodemailer seguro
+// Nodemailer
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -23,6 +23,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Função para enviar e-mail com log de erro
 async function sendEmail(payerEmail, amount, currency, status) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -33,44 +34,50 @@ async function sendEmail(payerEmail, amount, currency, status) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('E-mail de notificação enviado.');
+    console.log('✅ E-mail de notificação enviado.');
   } catch (err) {
-    console.error('Erro ao enviar e-mail:', err);
+    console.error('❌ Erro ao enviar e-mail:', err);
   }
 }
 
-// ===== Conexão MongoDB ===== //
+// ===== Conexão com MongoDB ===== //
 let dbClient;
 MongoClient.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(client => {
     dbClient = client;
-    console.log('Conectado ao MongoDB');
+    console.log('✅ Conectado ao MongoDB');
   })
-  .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+  .catch(err => console.error('❌ Erro ao conectar ao MongoDB:', err));
 
 // ===== Endpoint IPN ===== //
 app.post('/ipn', async (req, res) => {
-  res.sendStatus(200);
-
-  const body = 'cmd=_notify-validate&' + new URLSearchParams(req.body).toString();
+  console.log('⚡ IPN recebido:', req.body); // log completo do PayPal
+  res.sendStatus(200); // responder rápido ao PayPal
 
   try {
+    // Validação IPN
+    const body = 'cmd=_notify-validate&' + new URLSearchParams(req.body).toString();
     const response = await fetch('https://ipnpb.paypal.com/cgi-bin/webscr', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body
     });
+
     const text = await response.text();
+    if (text !== 'VERIFIED') {
+      console.error('❌ IPN inválido');
+      return;
+    }
 
-    if (text === 'VERIFIED') {
-      const payerEmail = req.body.payer_email;
-      const paymentStatus = req.body.payment_status;
-      const amount = req.body.mc_gross;
-      const currency = req.body.mc_currency;
+    const payerEmail = req.body.payer_email;
+    const paymentStatus = req.body.payment_status;
+    const amount = req.body.mc_gross;
+    const currency = req.body.mc_currency;
 
-      console.log(`Pagamento VERIFICADO: ${payerEmail} pagou ${amount} ${currency} | Status: ${paymentStatus}`);
+    console.log(`✅ Pagamento VERIFICADO: ${payerEmail} pagou ${amount} ${currency} | Status: ${paymentStatus}`);
 
-      // Salvar no MongoDB
+    // Salvar no MongoDB
+    try {
       const db = dbClient.db(DB_NAME);
       const collection = db.collection(COLLECTION);
       await collection.insertOne({
@@ -80,17 +87,33 @@ app.post('/ipn', async (req, res) => {
         currency,
         date: new Date()
       });
-
-      // Enviar e-mail de notificação
-      await sendEmail(payerEmail, amount, currency, paymentStatus);
-
-    } else {
-      console.log('IPN inválido');
+      console.log('✅ Pagamento salvo no MongoDB');
+    } catch (err) {
+      console.error('❌ Erro ao salvar pagamento no MongoDB:', err);
     }
+
+    // Enviar e-mail de notificação
+    try {
+      await sendEmail(payerEmail, amount, currency, paymentStatus);
+    } catch (err) {
+      console.error('❌ Erro ao enviar e-mail:', err);
+    }
+
   } catch (err) {
-    console.error('Erro ao validar IPN:', err);
+    console.error('❌ Erro ao validar IPN:', err);
+  }
+});
+
+// ===== Rota de teste de e-mail (opcional) ===== //
+app.get('/teste-email', async (req, res) => {
+  try {
+    await sendEmail('teste@exemplo.com', '9.00', 'USD', 'Completed');
+    res.send('E-mail de teste enviado!');
+  } catch (err) {
+    console.error('❌ Erro ao enviar e-mail de teste:', err);
+    res.status(500).send('Erro ao enviar e-mail de teste');
   }
 });
 
 // ===== Iniciar servidor ===== //
-app.listen(PORT, () => console.log(`Servidor IPN rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor IPN rodando na porta ${PORT}`));
