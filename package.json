@@ -1,5 +1,5 @@
 {
-  "name": "sourcefluent-ipn",
+  "name": "sourcefluent-server",
   "version": "1.0.0",
   "description": "Servidor Node.js para SourceFluent AI - validação de pagamentos PayPal com PDT e MongoDB",
   "main": "server.js",
@@ -22,10 +22,12 @@
   "dependencies": {
     "dotenv": "^16.1.4",
     "express": "^4.18.2",
-    "mongoose": "^7.6.0",
-    "node-fetch": "^3.4.2"
+    "mongoose": "^7.6.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
