@@ -1,19 +1,31 @@
 {
-  "name": "paypal-ipn-mongodb",
+  "name": "sourcefluent-ipn",
   "version": "1.0.0",
-  "description": "Servidor Node.js para IPN do PayPal com MongoDB e notificação por e-mail",
+  "description": "Servidor Node.js para SourceFluent AI - validação de pagamentos PayPal com PDT e MongoDB",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "author": "Acácio Faria Vicente",
+  "keywords": [
+    "paypal",
+    "pdt",
+    "nodejs",
+    "express",
+    "mongodb",
+    "saas",
+    "sourcefluent"
+  ],
+  "author": "Acacio Faria",
   "license": "MIT",
   "dependencies": {
-    "body-parser": "^1.20.3",
-    "dotenv": "^16.3.1",
+    "dotenv": "^16.1.4",
     "express": "^4.18.2",
-    "mongodb": "^5.8.0",
-    "node-fetch": "^3.3.2",
-    "nodemailer": "^6.9.4"
+    "mongoose": "^7.6.0",
+    "node-fetch": "^3.4.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }
